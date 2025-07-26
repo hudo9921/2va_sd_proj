@@ -1,0 +1,86 @@
+version: "3"
+services:
+  server_authentication:
+    build:
+      context: .
+      dockerfile: ./docker/django.dockerfile
+    tty: true
+    ports:
+      - "8000:8000"
+    command: >
+      bash -c 'python manage.py runserver 0.0.0.0:8000'
+    restart: unless-stopped
+    networks:
+      - sd-network
+    volumes:
+      - ./app/auth_project/:/app/
+    depends_on:
+      db:
+        condition: service_healthy
+  server_business:
+    build:
+      context: .
+      dockerfile: ./docker/django.dockerfile
+    tty: true
+    ports:
+      - "8050:8050"
+    command: >
+      bash -c 'python manage.py runserver 0.0.0.0:8050'
+    restart: unless-stopped
+    networks:
+      - sd-network
+    volumes:
+      - ./app/business_project/:/app/
+    depends_on:
+      - server_authentication
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - sd-network
+  db:
+    image: postgres:14.2
+    ports:
+      - "5434:5432"
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data/"
+    environment:
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+    networks:
+      - sd-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  order_handler:
+    build:
+      context: .
+      dockerfile: ./docker/django.dockerfile
+    command: >
+      bash -c 'celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler & \
+                celery -A config worker -l INFO --without-heartbeat --without-gossip --without-mingle --concurrency=1'
+    restart: unless-stopped
+    networks:
+      - sd-network
+    volumes:
+     - ./app/business_project/:/app/
+    depends_on:
+     - db
+     - server_business
+     - redis
+    environment:
+      - DB_HOST=db
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+
+networks:
+  sd-network:
+    name: sd-network
+    driver: bridge
+
+volumes:
+  postgres_data:
