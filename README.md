@@ -1,7 +1,6 @@
-# ProjetoSD
+# Projeto e Implementação de Sistemas Distribuídos
 
-O projeto consiste em um site de e-commerce.
-Nesse site o usuário, quando logado, pode adicionar  itens ao seu carrinho, nele o usuário pode remover itens, editar quantidade de itens, limpar o carrinho ou efetuar uma compra. Quando uma compra é efetuada, o usuário recebe um email com os detalhes do seu pedido. Além disso, as suas compras são mostradas na aba de compras onde o usuário pode acompanhar o status de seu pedido, esse pedido é processado por um dos modulos da aplicação onde ele periodicamente altera os status das compras que não foram entregues.
+O projeto consiste em um site de e-commerce. Nesse site, o usuário, quando logado, pode adicionar itens ao carrinho. No carrinho, o usuário pode remover itens, editar quantidades, limpar ou efetuar a compra. Ao finalizar a compra, um e-mail com os detalhes do pedido é enviado ao usuário. As compras podem ser acompanhadas na aba de pedidos, onde o status é atualizado periodicamente por um módulo da aplicação.
 
 
 ## Arquitetura:
@@ -17,10 +16,16 @@ Nesse site o usuário, quando logado, pode adicionar  itens ao seu carrinho, nel
       - Django rest framework
       - Aqui que fazemos CRUD das principais entidades do sistema, além de certas validações
     - Gerenciador de pedidos
-      - Django
-      - Comunicação assíncrona por meio do celery (envio de emails e alteração do status dos pedidos) utilizando o redis como worker
-      
-     
+      - Django + Celery + Redis
+      - Tarefas assíncronas como envio de e-mails e alteração do status dos pedidos são executadas com Celery, tendo o Redis como broker
+    - Geração de portfólios PDF
+      - ReportLab + Celery + Redis
+      -  A geração de arquivos PDF com os produtos do usuário é feita de forma assíncrona.
+    - Front End
+      - React
+      - Responsável pela interface do usuário e comunicação com o back-end por meio de requisições REST.
+    - Docker
+      - Todos os serviços (frontend, backend, banco de dados, Redis e Celery) são executados em contêineres isolados, o que facilita a implantação e simula um ambiente distribuído.
 ### Grupo: Hudo Leonardo e Samuel Vidal
       
       
