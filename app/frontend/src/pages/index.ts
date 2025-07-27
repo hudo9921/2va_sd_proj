@@ -4,3 +4,4 @@ export { default as ProductsPage } from './ProductsPage/ProductsPage';
 export { default as ProductPage } from './ProductPage/ProductPage';
 export { default as UserCart } from './UserCart/UserCart';
 export { default as UserOrders } from './UserOrders/UserOrders';
+export { default as Inventory } from './Inventory/Inventory';

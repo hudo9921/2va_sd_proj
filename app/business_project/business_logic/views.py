@@ -1,3 +1,4 @@
+import uuid
 from xml.dom import ValidationErr
 from rest_framework import status, permissions
 from rest_framework.views import APIView
@@ -11,6 +12,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from decimal import Decimal
 from .tasks import send_order_confirmation_email
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from django.http import JsonResponse
+from .tasks import generate_products_pdf_task
+from django.http import FileResponse, Http404
+import os
+from django.conf import settings
 
 class AddToCartAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -163,13 +170,30 @@ class ProductListCreate(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['title',]
-    filterset_fields = ['category',]
+    filterset_fields = ['category', 'festivity']
 
     def get_permissions(self):
         if self.request.method != 'GET':
             self.permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
         self.permission_classes = []
         return super(self.__class__, self).get_permissions()
+
+    def perform_create(self, serializer):
+        serializer.save(seller=self.request.user)
+
+class ListMyProducts(generics.ListAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['title',]
+    filterset_fields = ['category', 'festivity']
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        query_set = super().get_queryset()
+        
+        return query_set.filter(seller=self.request.user)
+
 
 class ProductRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()
@@ -181,6 +205,9 @@ class ProductRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
             self.permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
         self.permission_classes = []
         return super(self.__class__, self).get_permissions()
+    
+    def perform_update(self, serializer):
+        serializer.save(seller=self.request.user)
     
 
 class TopRatedProducts(generics.ListAPIView):
@@ -195,5 +222,40 @@ class ProductsCategories(APIView):
     permission_classes = []
 
     def get(self, request):
-        categories = Product.objects.all().values_list('category', flat=True).distinct()
+        categories = Product.objects.exclude(category__isnull=True).exclude(category='').values_list('category', flat=True).distinct()
         return Response(categories, status=status.HTTP_200_OK)
+    
+class ProductsFestivities(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        festivities = Product.objects.exclude(festivity__isnull=True).exclude(festivity='').values_list('festivity', flat=True).distinct()
+        return Response(festivities, status=status.HTTP_200_OK)
+    
+
+class TriggerPDFGeneration(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        file_name = f'products_report-{uuid.uuid4()}.pdf'
+
+        task = generate_products_pdf_task.delay(
+            request.user.cpf, 
+            request.query_params.get('category', None), 
+            request.query_params.get('festivity', None),
+            file_name
+        )
+        return Response({"message": "PDF generation started", "file_name": file_name}, status=status.HTTP_202_ACCEPTED)
+
+
+class DownloadPDF(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, filename):
+        file_path = os.path.join(settings.MEDIA_ROOT, "pdfs", filename)
+        if os.path.exists(file_path):
+            return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
+        raise Http404("PDF not found")
+
+
+

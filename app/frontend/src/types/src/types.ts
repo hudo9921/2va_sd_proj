@@ -5,11 +5,14 @@ export interface Product {
   title: string;
   description: string;
   category: string;
+  festivity: string;
   image: string;
   rating_rate: string;
   rating_count: number;
   stock_quant: number;
   price: number;
+  seller?: User;
+  file_img?: string;
 }
 
 export interface ProductGetRequest {

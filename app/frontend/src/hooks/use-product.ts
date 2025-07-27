@@ -3,14 +3,14 @@ import { useQuery } from "react-query";
 import { Endpoints } from "../constants/Endpoints/endpoints";
 import { Product } from "../types/";
 
-function useProduct(id: string) {
+function useProduct(id?: string) {
   const {
     data: product,
     isLoading,
     isFetching,
     refetch
   } = useQuery(
-    [`product`],
+    [`product`, id],
     async () => {
       const response = await axios.get<Product>(
         `${Endpoints.BUSINESS_LOGIC}product/${id}`
@@ -19,6 +19,7 @@ function useProduct(id: string) {
     },
     {
       staleTime: Infinity,
+      enabled: !!id
     }
   );
 

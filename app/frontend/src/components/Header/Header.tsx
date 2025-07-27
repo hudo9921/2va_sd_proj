@@ -38,6 +38,10 @@ import useGetUserCart from "../../hooks/use-get-user-cart";
 import useGetUserCartQuery from "../../hooks/use-get-user-cart-query";
 import useGetUserOrders from "../../hooks/use-get-user-orders";
 import { useQueryClient } from "react-query";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
+import PortilofioDialog from "../PortilofioDialog/PortilofioDialog";
+import useCreateUser from "../../hooks/use-create-user";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -128,6 +132,13 @@ export default function Header() {
       <MenuItem onClick={handleMenuClose}>My account</MenuItem>
       <MenuItem
         onClick={() => {
+          setOpenPortifolioDialog(true);
+        }}
+      >
+        Generate portifolio
+      </MenuItem>
+      <MenuItem
+        onClick={() => {
           setTokens(null, null);
           setUser(null);
           setCartQuantity(0);
@@ -211,14 +222,22 @@ export default function Header() {
   const { mutateAsync: getUserCart } = useGetUserCart();
 
   const [open, setOpen] = React.useState(false);
+  const [openRegister, setOpenRegister] = React.useState(false);
+  const [openPortifolioDialog, setOpenPortifolioDialog] = React.useState(false);
   const [cpf, setCpf] = React.useState<string>("");
   const [password, setPassword] = React.useState<string>("");
+  const [fullName, setFullName] = React.useState<string>("");
+  const [email, setEmail] = React.useState<string>("");
   const [openAlert, setOpenAlert] = React.useState(false);
   const [severity, setSeverity] = React.useState<AlertColor | undefined>(
     "success"
   );
   const [alertMessage, setAlertMessage] = React.useState<string>("");
   const [user, setUser] = React.useState<User | null>(null);
+
+  const mutateCreateUser = useCreateUser(() => {
+    setOpenRegister(false);
+  });
 
   const queryClient = useQueryClient();
 
@@ -268,8 +287,16 @@ export default function Header() {
     setCartQuantity(aux);
 
     setOrderQuantity(useOrders!?.length);
-    
-  }, [accessToken, getUserCart, getUserInfo, queryClient, refetch, refetchOrders, useOrders, userCart?.items]);
+  }, [
+    accessToken,
+    getUserCart,
+    getUserInfo,
+    queryClient,
+    refetch,
+    refetchOrders,
+    useOrders,
+    userCart?.items,
+  ]);
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -306,8 +333,8 @@ export default function Header() {
                 },
               }}
             >
-              shop
-              <span style={{ color: "#b65dff" }}>cart</span>
+              Mão na Massa
+              {/* <span style={{ color: "#b65dff" }}>cart</span> */}
             </Typography>
           </Box>
           <Search>
@@ -321,6 +348,44 @@ export default function Header() {
           </Search>
           <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
+            {!(!accessToken && !user) && (
+              <IconButton
+                size="large"
+                color="inherit"
+                onClick={() => {
+                  navigate(Routes.INVENTORY);
+                }}
+              >
+                <Badge
+                  color="error"
+                  sx={{
+                    "& .MuiBadge-colorError": {
+                      bgcolor: "#b65dff",
+                    },
+                  }}
+                >
+                  <InventoryIcon />
+                </Badge>
+              </IconButton>
+            )}
+            <IconButton
+              size="large"
+              color="inherit"
+              onClick={() => {
+                navigate(Routes.PRODUCTS);
+              }}
+            >
+              <Badge
+                color="error"
+                sx={{
+                  "& .MuiBadge-colorError": {
+                    bgcolor: "#b65dff",
+                  },
+                }}
+              >
+                <ShoppingBasketIcon />
+              </Badge>
+            </IconButton>
             <IconButton
               size="large"
               aria-label="show 4 new mails"
@@ -346,7 +411,7 @@ export default function Header() {
               aria-label="show 17 new notifications"
               color="inherit"
               onClick={() => {
-                navigate(Routes.USERORDERS)
+                navigate(Routes.USERORDERS);
               }}
             >
               <Badge
@@ -432,9 +497,98 @@ export default function Header() {
                   <DialogActions>
                     <Button onClick={handleClose}>Cancel</Button>
                     <Button onClick={handleLogIn}>Log In</Button>
-                    <Button onClick={handleClose}>Create an account</Button>
+                    <Button
+                      onClick={() => {
+                        setOpen(false);
+                        setOpenRegister(true);
+                      }}
+                    >
+                      Create an account
+                    </Button>
                   </DialogActions>
-                </Dialog>{" "}
+                </Dialog>
+                <Dialog
+                  open={openRegister}
+                  onClose={() => {
+                    setOpenRegister(false);
+                  }}
+                >
+                  <DialogTitle>Create account</DialogTitle>
+                  <DialogContent>
+                    {/* <DialogContentText>
+                      Enter a valid user cpf and password to log in at this
+                      site.
+                    </DialogContentText> */}
+                    <TextField
+                      autoFocus
+                      margin="dense"
+                      id="cpf"
+                      label="Cpf"
+                      value={cpf}
+                      onChange={(event) => setCpf(event.currentTarget.value)}
+                      fullWidth
+                      variant="standard"
+                    />
+                    <TextField
+                      autoFocus
+                      margin="dense"
+                      id="full_name"
+                      label="Full name"
+                      type="text"
+                      value={fullName}
+                      onChange={(event) =>
+                        setFullName(event.currentTarget.value)
+                      }
+                      fullWidth
+                      variant="standard"
+                    />
+                    <TextField
+                      autoFocus
+                      margin="dense"
+                      id="email"
+                      label="Email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.currentTarget.value)}
+                      fullWidth
+                      variant="standard"
+                    />
+                    <TextField
+                      autoFocus
+                      margin="dense"
+                      id="password"
+                      label="Password"
+                      type="password"
+                      value={password}
+                      onChange={(event) =>
+                        setPassword(event.currentTarget.value)
+                      }
+                      fullWidth
+                      variant="standard"
+                    />
+                  </DialogContent>
+                  <DialogActions>
+                    <Button
+                      onClick={() => {
+                        setOpenRegister(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        mutateCreateUser.mutate({
+                          cpf: cpf,
+                          email: email,
+                          full_name: fullName,
+                          password: password,
+                        });
+                      }}
+                    >
+                      Create
+                    </Button>
+                  </DialogActions>
+                </Dialog>
               </>
             ) : (
               <Box
@@ -479,6 +633,10 @@ export default function Header() {
       </AppBar>
       {renderMobileMenu}
       {renderMenu}
+      <PortilofioDialog
+        open={openPortifolioDialog}
+        setOpen={setOpenPortifolioDialog}
+      />
     </Box>
   );
 }

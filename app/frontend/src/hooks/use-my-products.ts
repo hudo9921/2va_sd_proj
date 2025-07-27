@@ -2,23 +2,26 @@ import axios from "axios";
 import { useQuery } from "react-query";
 import { Endpoints } from "../constants/Endpoints/endpoints";
 import { ProductGetRequest } from "../types/";
+import { useAuth } from "../context";
 
-function useProducts(
+function useMyProducts(
   offset: number = 10,
   search: string = "",
   category: string = "",
   festivity: string = ""
 ) {
+  const { accessToken } = useAuth();
+
   const {
     data: products,
     isLoading,
     isFetching,
     refetch,
   } = useQuery(
-    [`products`, category, festivity],
+    [`my-products`, category, festivity],
     async () => {
       const response = await axios.get<ProductGetRequest>(
-        `${Endpoints.BUSINESS_LOGIC}product`,
+        `${Endpoints.BUSINESS_LOGIC}my_products`,
         {
           params: {
             limit: 10,
@@ -26,6 +29,9 @@ function useProducts(
             search: search,
             category: category,
             festivity,
+          },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -39,4 +45,4 @@ function useProducts(
   return { products, isLoading, isFetching, refetch };
 }
 
-export default useProducts;
+export default useMyProducts;

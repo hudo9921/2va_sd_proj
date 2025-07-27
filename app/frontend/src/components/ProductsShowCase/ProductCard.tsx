@@ -96,6 +96,13 @@ const ProductCard = ({
     navigate(Routes.PRODUCT + `${id}`);
   };
 
+  const resolvedImage =
+    product.image && product.image.trim() !== ""
+      ? product.image
+      : product.file_img && typeof product.file_img === "string"
+      ? product.file_img.replace('minio', 'localhost').split("?")[0]
+      : "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg";
+
   return (
     <Box
       sx={styles.root}
@@ -110,8 +117,9 @@ const ProductCard = ({
 
       <Box
         sx={{
-          backgroundImage: `url(${product.image})`,
+          backgroundImage: `url(${resolvedImage})`,
           backgroundSize: "cover",
+          backgroundPosition: "center",
           ...styles.prodImage,
         }}
       />

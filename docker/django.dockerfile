@@ -1,4 +1,4 @@
-FROM python:3.8-slim-buster
+FROM python:3.9-slim-bullseye
 
 # Set the working directory to /app
 WORKDIR /app
@@ -9,7 +9,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev
 
 # Install any needed packages specified in requirements.txt
-RUN pip install Django==4.0 djangorestframework==3.13 psycopg2-binary==2.9.5 djangorestframework-simplejwt django-cors-headers django-filter celery django-celery-beat django-celery-results Redis
+RUN pip install Django==4.0 djangorestframework==3.13 psycopg2-binary==2.9.5 djangorestframework-simplejwt django-cors-headers django-filter celery django-celery-beat django-celery-results Redis django-storages[boto3] reportlab
 
 COPY . /app
 

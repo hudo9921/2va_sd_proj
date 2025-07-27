@@ -14,11 +14,15 @@ class UserInfoView(APIView):
 
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        user.set_password(request.data.get('password'))
+        user.save()
 
         return Response({
             "user": UserSerializer(user, context=self.get_serializer_context()).data,

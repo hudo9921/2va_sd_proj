@@ -17,5 +17,9 @@ app.conf.beat_schedule = {
         'task': 'business_logic.tasks.order_manager',
         'schedule': 10.0,
     },
+    'product_rating_manager': {
+        'task': 'business_logic.tasks.product_rating_manager',
+        'schedule': 100.0,
+    },
 }
 

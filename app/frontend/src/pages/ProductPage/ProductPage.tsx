@@ -11,13 +11,22 @@ import {
 } from "@mui/material";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Header } from "../../components";
+import {
+  CreateProductDialog,
+  EditProductDialog,
+  Header,
+} from "../../components";
 import useProduct from "../../hooks/use-product";
 import ProductCard from "../../components/ProductsShowCase/ProductCard";
 import useProducts from "../../hooks/use-products";
 import { useAuth } from "../../context";
 import useAddProductToCart from "../../hooks/use-add-product-to-cart";
 import { useQueryClient } from "react-query";
+import { User } from "../../types";
+import useUserInfo from "../../hooks/use-user-info";
+import useDeleteProduct from "../../hooks/use-delete-product";
+import { useNavigate } from "react-router-dom";
+import { Routes } from "../../constants";
 
 const styles = {
   root: {
@@ -113,12 +122,16 @@ const styles = {
 type Props = {};
 
 const ProductPage = (props: Props) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams();
   const { product, refetch, isFetching, isLoading } = useProduct(id ?? "");
   const [quantity, setQuantity] = useState<number>(0);
   const [open, setOpen] = useState(false);
   const [severity, setSeverity] = useState<AlertColor | undefined>("success");
   const [alertMessage, setAlertMessage] = useState<string>("");
+  const [user, setUser] = React.useState<User | null>(null);
+  const [openProductDialog, setOpenProductDialog] = useState(false);
 
   const { products, refetch: refetchProducts } = useProducts(
     10,
@@ -126,14 +139,19 @@ const ProductPage = (props: Props) => {
     product!?.category
   );
 
+  const mutateDelete = useDeleteProduct(() => {
+    navigate(Routes.INVENTORY);
+    queryClient.invalidateQueries({ queryKey: [`my-products`] });
+  })
+
   useEffect(() => {
     refetch();
   }, [id, refetch, refetchProducts]);
 
   const IsOutOfStock = useMemo(() => product!?.stock_quant <= 0, [product]);
   const { mutateAsync } = useAddProductToCart(product!?.id, quantity);
+  const { mutateAsync: getUserInfo } = useUserInfo();
   const { accessToken } = useAuth();
-  const queryClient = useQueryClient();
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -147,21 +165,42 @@ const ProductPage = (props: Props) => {
         setAlertMessage("Invalid quantity.");
       } else {
         mutateAsync({ quantity })
-        .then((data) => {
-          setOpen(true);
-          setSeverity("success");
-          setAlertMessage("Product added to cart.");
-          queryClient.invalidateQueries({ queryKey: ["get-user-cart-query"] });
-        })
-        .catch((reason) => {
-          setOpen(true);
-          setSeverity("error");
-          setAlertMessage(reason.message);
-        })
+          .then((data) => {
+            setOpen(true);
+            setSeverity("success");
+            setAlertMessage("Product added to cart.");
+            queryClient.invalidateQueries({
+              queryKey: ["get-user-cart-query"],
+            });
+          })
+          .catch((reason) => {
+            setOpen(true);
+            setSeverity("error");
+            setAlertMessage(reason.message);
+          });
       }
     },
     [accessToken, mutateAsync, product, quantity, queryClient]
   );
+
+  React.useEffect(() => {
+    if (accessToken) {
+      getUserInfo()
+        .then((data) => {
+          setUser(data);
+        })
+        .catch(() => {
+          console.log("deu ruim");
+        });
+    }
+  }, [accessToken, getUserInfo, queryClient, refetch]);
+
+  const resolvedImage =
+    product && product.image && product.image.trim() !== ""
+      ? product.image
+      : product && product.file_img && typeof product.file_img === "string"
+      ? product.file_img.replace("minio", "localhost").split("?")[0]
+      : "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg";
 
   if (isFetching || isLoading) {
     return <Box sx={styles.root}></Box>;
@@ -201,7 +240,7 @@ const ProductPage = (props: Props) => {
               )}
               <Box
                 sx={{
-                  backgroundImage: `url(${product.image})`,
+                  backgroundImage: `url(${resolvedImage})`,
                   backgroundSize: "cover",
                   ...styles.prodImage,
                 }}
@@ -277,20 +316,56 @@ const ProductPage = (props: Props) => {
                       }
                       type="number"
                     />
-                    <Button
-                      variant="contained"
-                      disabled={IsOutOfStock}
-                      sx={{
-                        bgcolor: "#b65dff",
-                        "&:hover": { bgcolor: "#7b3ead" },
-                        width: "10rem",
-                        height: "3.5rem",
-                        color: "white",
-                      }}
-                      onClick={handleClick}
-                    >
-                      <strong>Add to cart</strong>
-                    </Button>
+                    <Box sx={{
+                      display: 'flex',
+                      gap: 2
+                    }}>
+                      <Button
+                        variant="contained"
+                        disabled={
+                          user && user.cpf === product.seller?.cpf
+                            ? undefined
+                            : IsOutOfStock
+                        }
+                        sx={{
+                          bgcolor: "#b65dff",
+                          "&:hover": { bgcolor: "#7b3ead" },
+                          // width: "10rem",
+                          height: "3.5rem",
+                          color: "white",
+                        }}
+                        onClick={
+                          user && user.cpf === product.seller?.cpf
+                            ? () => {
+                                setOpenProductDialog(true);
+                              }
+                            : handleClick
+                        }
+                      >
+                        <strong>
+                          {user && user.cpf === product.seller?.cpf
+                            ? "Edit product"
+                            : "Add to cart"}
+                        </strong>
+                      </Button>
+                      {user && user.cpf === product.seller?.cpf && (
+                        <Button
+                          variant="contained"
+                          sx={{
+                            bgcolor: "#b65dff",
+                            "&:hover": { bgcolor: "#7b3ead" },
+                            // width: "10rem",
+                            height: "3.5rem",
+                            color: "white",
+                          }}
+                          onClick={() => {
+                            mutateDelete.mutate(product.id)
+                          }}
+                        >
+                          <strong>Delete</strong>
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
               </Box>
@@ -323,6 +398,11 @@ const ProductPage = (props: Props) => {
           </Box>
         )}
       </Box>
+      <EditProductDialog
+        open={openProductDialog}
+        setOpen={setOpenProductDialog}
+        productId={product?.id.toString() ?? ""}
+      />
     </Box>
   );
 };

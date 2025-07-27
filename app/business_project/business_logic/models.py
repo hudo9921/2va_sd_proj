@@ -72,12 +72,16 @@ class Product(models.Model):
     # id = models.PositiveIntegerField(primary_key=True)
     title = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.TextField()
-    category = models.CharField(max_length=255)
-    image = models.URLField()
-    rating_rate = models.DecimalField(max_digits=3, decimal_places=1)
-    rating_count = models.PositiveIntegerField()
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=255, blank=True, null=True)
+    image = models.URLField(blank=True)
+    rating_rate = models.DecimalField(max_digits=3, decimal_places=1, default=0)
+    rating_count = models.PositiveIntegerField(default=0)
     stock_quant = models.PositiveIntegerField(default=0)
+    festivity = models.CharField(max_length=255, blank=True, null=True)
+    seller = models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True)
+
+    file_img = models.FileField(upload_to='products/', blank=True, null=True)
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

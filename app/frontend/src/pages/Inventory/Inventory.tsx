@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -11,11 +12,18 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
-import { Header, ProductsShowCase } from "../../components";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  CreateProductDialog,
+  Header,
+  ProductsShowCase,
+} from "../../components";
 import useProducts from "../../hooks/use-products";
 import useProductsCategories from "../../hooks/use-products-categories";
 import useProductsFestivities from "../../hooks/use-products-festivities";
+import { useAuth } from "../../context";
+import { User } from "../../types";
+import useMyProducts from "../../hooks/use-my-products";
 
 const styles = {
   root: {
@@ -107,20 +115,19 @@ const styles = {
   },
 };
 
-type ProductsPageProps = {};
-
-const ProductsPage = (props: ProductsPageProps) => {
+const Inventory = () => {
+  const [open, setOpen] = useState(false);
   const [page, setPage] = useState<number>(1);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedFestivity, setSelectedFestivity] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  const { products, refetch } = useProducts(
+  const { products, refetch } = useMyProducts(
     (page - 1) * 10,
     searchQuery,
     selectedCategory,
-    selectedFestivity
+    selectedFestivity,
   );
   const { categories } = useProductsCategories();
   const { festivities } = useProductsFestivities();
@@ -193,9 +200,7 @@ const ProductsPage = (props: ProductsPageProps) => {
               ))}
             </Select>
           </FormControl>
-          <FormControl fullWidth sx={{
-            pr: 3,
-          }}>
+          <FormControl fullWidth>
             <InputLabel>Festivity</InputLabel>
             <Select
               value={selectedFestivity}
@@ -211,6 +216,31 @@ const ProductsPage = (props: ProductsPageProps) => {
               ))}
             </Select>
           </FormControl>
+          <Box
+            sx={{
+              pl: 3,
+              pr: 3,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Button
+              variant="contained"
+              sx={{
+                bgcolor: "#b65dff",
+                "&:hover": { bgcolor: "#7b3ead" },
+                // width: "10rem",
+                // height: "3.5rem",
+                color: "white",
+              }}
+              onClick={() => {
+                setOpen(true);
+              }}
+            >
+              <strong>Add product</strong>
+            </Button>
+          </Box>
         </Box>
         {products && (
           <ProductsShowCase
@@ -221,7 +251,7 @@ const ProductsPage = (props: ProductsPageProps) => {
               ...styles.prodShowCase,
             }}
             products={products.results}
-            title={"All Products"}
+            title={"My products"}
             textFormatNumber={20}
           />
         )}
@@ -246,8 +276,9 @@ const ProductsPage = (props: ProductsPageProps) => {
           </Box>
         )}
       </Box>
+      <CreateProductDialog open={open} setOpen={setOpen} />
     </Box>
   );
 };
 
-export default ProductsPage;
+export default Inventory;
